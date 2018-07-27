@@ -1,0 +1,330 @@
+---
+title: "Baruch College Undergrads Respond to Extension of Social Greek Life Ban"
+author: "Gabriel Etrata"
+date: "May 13, 2018"
+output: html_document
+---
+
+<!-- WARNING: see the code chunk below for instructions on importing and attaching your data-->
+
+```{r, echo=FALSE, message=FALSE}
+
+## Import the data by "data.csv" to the correct filename. Don't forget that your data file needs to be in the same folder as this Rmd.
+tempSD <-read.csv("baruchExtensionSurvey.csv", header = TRUE)
+#Ignoring first column of timestamps
+surveyData = tempSD[c(2,3,4,5,6,7)]
+
+#Attach the data
+attach(surveyData)
+library(ggplot2)
+library(plyr)
+is.Baruch <- surveyData$isBaruchStudent
+student.Gender <- surveyData$studentGender
+student.Year <- surveyData$studentYear
+student.Status <- surveyData$studentStatus
+student.Opinion <- surveyData$studentOpinion
+student.Join <- surveyData$studentJoin
+```
+
+#### Introduction
+
+On Tuesday May 8, 2018, Provost and Senior Vice President for Academic Affairs at Baruch College, David P. Christy, and Vice President for Student Affairs & Dean of Students at Baruch College,  Art King, have issued an extension of the moratorium regarding social Greek organizations at Baruch College. The analysis of the following data (using statistical computing language, R) seeks to measure students' response to this and determine conclusions from the data.
+
+#### Data
+
+The data was collected through an online survey created through Google Forms, intended for Baruch College undergraduate students to respond. The survey started at 3:30pm EST on Wednesday, May 09, 2018 and ended at 9:15am on Friday, May 11, 2018. 
+Baruch College has an undergraduate population of 15,254 and
+69/70 of those surveyed identified as Baruch College undergraduate students.
+
+Specific questions of interest include: 
+
+1) Is gender associated with supporting the extension?
+2) Does gender play a role with wanting to join a social Greek organization?
+3) Which year(s) support/do not support the extension the most?
+4) Who considered joining social Greek life if the ban was lifted?
+
+One consideration to make: the freshman sub-population may be underrepresented, since only 7 freshmen (10.1% of the sample population) were surveyed.
+
+#### Variables
+<!-- If you want to do a table, here's how. Otherwise, just delete.-->
+
+Variable | Description
+------------- | -------------
+is.Baruch | *C* Are you a Baruch undergraduate student?  - Y or N.
+student.Gender | *C* What is your gender? - Female, Male, Non-binary/third gender
+student.Year | *C* What is your year? - Freshman, Sophomore, Junior, Senior
+student.Status | *C* Academic Status per semester. - Full-time, Part-time
+student.Opinion | *C* Do you support the extension? - Y or N.
+student.Join | *C* Would you have considered joining a social Greek organization if the ban was lifted? - Y or N?
+
+*C* - Categorical
+
+#### Exploratory Data Analysis (EDA) and Statistical Inference
+
+```{r, tidy=TRUE, tidy.opts=list(width.cutoff=60)}
+#Sorting data by students' academic year
+#sort is a temp variable
+sort = rep(0, nrow(surveyData))
+sort[with(surveyData, studentYear == "Freshman")] = 1
+sort[with(surveyData, studentYear == "Sophomore")] = 2
+sort[with(surveyData, studentYear == "Junior")] = 3
+sort[with(surveyData, studentYear == "Senior")] = 4
+surveyData$studentYear = with(surveyData, reorder(studentYear, sort))
+#Deleting sort
+rm(sort)
+#Display table of all students' gender and academic year
+with(surveyData, table(studentGender, studentYear))
+#Plot the data
+ggplot(surveyData, aes(x = studentYear, fill = studentGender)) + geom_bar()+ labs(fill = "Gender", x = "Year", y = "Count", title = "Year and Gender of Baruch Students")
+```
+
+```{r}
+#Create table of gender proportions in the sample population
+genderTable = with(surveyData, table(student.Gender))
+#Proportions of gender
+genderTable/sum(genderTable)
+```
+Proportion of females: $$\hat{p}_{F} = 0.41$$ 
+Proportion of males: $$\hat{p}_{M} = 0.57$$ 
+Proportion of non-binary/third gender individuals: $$\hat{p}_{NB} = 0.01$$
+Proportion of individuals who did not prefer to say: $$\hat{p}_{N} = 0.01$$
+```{r}
+#Create table of academic year proportions in the sample population
+yearTable = with(surveyData, table(student.Year))
+#Proportions of academic year
+yearTable/sum(yearTable)
+```
+Proportion of freshmen: $$\hat{p}_{fresh} = 0.10$$ 
+Proportion of sophomores: $$\hat{p}_{soph} = 0.33$$ 
+Proportion of juniors: $$\hat{p}_{jun} = 0.19$$
+Proportion of seniors: $$\hat{p}_{sen} = 0.38$$
+```{r}
+#Create table of proportions for academic status in the sample population
+statusTable = with(surveyData, table(student.Status))
+#Proportions of academic status
+statusTable/sum(statusTable)
+```
+Proportion of full-time students: $$\hat{p}_{ft} = 0.93$$
+Proportion of part-time students: $$\hat{p}_{pt} = 0.07$$
+```{r}
+#Create table of student opinion of extension proportions in the sample population
+supportTable = with(surveyData, table(student.Opinion))
+#Proportions of student opinion of extension
+supportTable/sum(supportTable)
+```
+Proportion of those who support the extension: $$\hat{p}_{sup} = 0.36$$
+Proportion of those who do not support the extension: $$\hat{p}_{nsup} = 0.64$$
+```{r}
+#Create table of proportions for those considering/not considering joining a social Greek organization
+joinTable = with(surveyData, table(student.Join))
+#Proportions of those considering/not considering
+joinTable/sum(joinTable)
+```
+Proportion of those who would consider joining a social Greek organization: $$\hat{p}_{c} = 0.41$$
+Proportion of those who would not consider joining a social Greek organization:$$\hat{p}_{nc} = 0.59$$
+
+### 1. Is gender associated with supporting the extension?
+$H_{o}$: Gender and support of the extension are independent.
+
+$H_{a}$: Gender and support of the extension are dependent.
+
+```{r, tidy=TRUE, tidy.opts=list(width.cutoff=60)}
+#Plot the data
+p0 <- ggplot(surveyData, aes(x = studentGender, fill = studentOpinion)) + geom_bar() + labs(fill = "Support of the Extension", x = "Gender", y = "Count", title = "Gender and Support of the Extension")
+#Abbreviate x-axis labels
+p0 + scale_x_discrete(labels = abbreviate)
+totalFemales = length(which(student.Gender == "Female"))
+#Number of females who do not support the extension
+fem_noSup = length(which(student.Gender == "Female" & student.Opinion == "No"))
+#Number of females who do support the extension
+fem_Sup = length(which(student.Gender == "Female" & student.Opinion == "Yes"))
+totalMales = length(which(student.Gender == "Male"))
+#Number of males who do not support the extension
+male_noSup = length(which(student.Gender == "Male" & student.Opinion == "No"))
+#Number of males who do support the extension
+male_Sup = length(which(student.Gender == "Male" & student.Opinion == "Yes"))
+#Entering data into vectors
+females = c(fem_noSup, fem_Sup)
+males = c(male_noSup, male_Sup)
+# Combining the row vectors in matrices, then converting the matrix into a data frame
+supportSubset = as.data.frame(rbind(females, males))
+# Assigning column names to this data frame
+names(supportSubset) = c('Do not support', 'Support')
+chisq.test(supportSubset, correct = FALSE)
+#Proportions of females who support the extension
+fem_Sup/totalFemales
+#Proportions of males who support the extension
+male_Sup/totalMales
+```
+####Comments
+Since $p = 0.8396 > 0.05$, we accept the null hypothesis and conclude that gender (female and male) and support of extension are independent. Additionally, it was found that $38\%$ of females support the extension, while $33\%$ of males support the extension. 
+
+Due to a small size of non-binary/third gender and those who did not prefer to say (sample population of 1 each), their proportions should not be considered due to statistical insignificance.
+
+### 2. Does gender play a role with wanting to join a social Greek organization?
+$H_{o}$: Gender and wanting to join a social Greek organization, if the ban was lifted are independent.
+
+$H_{a}$: Gender and wanting to join a social Greek organization, if the ban was lifted are dependent.
+```{r, tidy=TRUE, tidy.opts=list(width.cutoff=60)}
+#Plot the data
+p1 <- ggplot(surveyData, aes(x = studentGender, fill = studentJoin)) + geom_bar() + labs(fill = "Consideration of Joining social Greek life", x = "Gender", y = "Count", title = "Gender and Consideration of Joining social Greek life")
+#Abbreviate x-axis labels
+p1 + scale_x_discrete(labels = abbreviate)
+#Number of females who would not have considered joining a social Greek organization
+fem_nCon = length(which(student.Gender == "Female" & student.Join == "No"))
+#Number of females who would have considered joining a social Greek organization
+fem_con = length(which(student.Gender == "Female" & student.Join == "Yes"))
+#Number of males who who would not have considered joining a social Greek organization
+male_nCon = length(which(student.Gender == "Male" & student.Join == "No"))
+#Number of males who would have considered joining a social Greek organization
+male_con = length(which(student.Gender == "Male" & student.Join == "Yes"))
+#Entering data into vectors
+females_c = c(fem_nCon, fem_con)
+males_c = c(male_nCon, male_con)
+# Combining the row vectors in matrices, then converting the matrix into a data frame
+joinSubset = as.data.frame(rbind(females_c, males_c))
+# Assigning column names to this data frame
+names(joinSubset) = c('Do not support', 'Support')
+chisq.test(joinSubset, correct = FALSE)
+#Proportion of females who would have considered joining a social Greek organization
+fem_con/totalFemales
+#Proportion of males who would have considered joining a social Greek organization
+male_con/totalMales
+```
+####Comments
+Since $p = 0.10 > 0.05$, we accept the null hypothesis and conclude that gender and wanting to join a social Greek organization, if the ban was lifted are independent. It was found that $54\%$ of females would have considered joining a social Greek organization, while $33\%$ of males would have considered joining a social Greek organization.
+
+Due to a small size of non-binary/third gender and those who did not prefer to say (sample population of 1 each), their proportions should not be considered due to statistical insignificance.
+
+### 3. Which year(s) support/not support the extension the most?
+```{r, tidy=TRUE, tidy.opts=list(width.cutoff=60)}
+#Plot the data
+ggplot(surveyData, aes(x = studentYear, fill = studentOpinion)) + geom_bar() + labs(fill = "Support of the Extension", x = "Year", y = "Count", title = "Student Opinion of the Extension")
+totalFresh = length(which(student.Year == "Freshman"))
+#Number of freshman who do not support the extension
+fresh_noSup = length(which(student.Year == "Freshman" & student.Opinion == "No"))
+#Number of freshman support the extension
+fresh_Sup = length(which(student.Year == "Freshman" & student.Opinion == "Yes"))
+
+totalSoph = length(which(student.Year == "Sophomore"))
+#Number of sophomores who do not support the extension
+soph_noSup = length(which(student.Year == "Sophomore" & student.Opinion == "No"))
+#Number of sophomores support the extension
+soph_Sup = length(which(student.Year == "Sophomore" & student.Opinion == "Yes"))
+#Number of juniors who do not support the extension
+
+totalJun = length(which(student.Year == "Junior"))
+jun_noSup = length(which(student.Year == "Junior" & student.Opinion == "No"))
+#Number of juniors support the extension
+jun_Sup = length(which(student.Year == "Junior" & student.Opinion == "Yes"))
+#Number of seniors who do not support the extension
+
+totalSen = length(which(student.Year == "Senior"))
+sen_noSup = length(which(student.Year == "Senior" & student.Opinion == "No"))
+#Number of juniors support the extension
+sen_Sup = length(which(student.Year == "Senior" & student.Opinion == "Yes"))
+```
+
+```{r}
+#Proportion of freshmen who support the extension
+pFreshSup = fresh_Sup/totalFresh
+pFreshSup
+#Proportion of freshmen who do not support the extension
+pFreshNoSup =fresh_noSup/totalFresh
+pFreshNoSup
+
+#Proportion of sophomores who support the extension
+pSophSup = soph_Sup/totalSoph
+pSophSup
+#Proportion of sophomores who do not support the extension
+pSophNoSup = soph_noSup/totalSoph
+pSophNoSup
+
+#Proportion of juniors who support the extension
+pJunSup = jun_Sup/totalJun
+pJunSup
+#Proportion of juniors who do not support the extension
+pJunNoSup = jun_noSup/totalJun
+pJunNoSup
+
+#Proportion of seniors who support the extension
+pSenSup = sen_Sup/totalSen
+pSenSup
+#Proportion of seniors who do not support the extension
+pSenNoSup = sen_noSup/totalSen
+pSenNoSup
+
+#Return year of highest support and its proportion
+supportSet_Year = c(pFreshSup, pSophSup, pJunSup, pSenSup)
+maxNum = max(supportSet_Year)
+maxName <- c("Freshman", "Sophomore", "Junior", "Senior")[which.max(supportSet_Year)]
+print(maxName)
+print(maxNum)
+
+#Return year of highest not support and its proportion
+noSupportSet_Year = c(pFreshNoSup, pSophNoSup, pJunNoSup, pSenNoSup)
+maxNum_1 = max(noSupportSet_Year)
+maxName_1 <- c("Freshman", "Sophomore", "Junior", "Senior")[which.max(noSupportSet_Year)]
+print(maxName_1)
+print(maxNum_1)
+```
+####Comments
+The highest proportion of supporters of the extension is $57\%$ of freshmen, while the highest proportion of non-supporters is $78\%$ of juniors.
+
+### 4) Who, in particular, considered joining social Greek life if the ban was lifted?
+```{r, tidy=TRUE, tidy.opts=list(width.cutoff=60)}
+ggplot(surveyData, aes(x = studentJoin, fill = studentGender)) + geom_bar() + labs(fill = "Gender", x = "Consideration", y = "Count", title = "Consideration and Gender")
+totalJoin = length(which(student.Join == "Yes"))
+#Proportions of females who would consider joining a social Greek organization
+fem_con/totalJoin
+#Proportions of males who would consider joining a social Greek organization
+male_con/totalJoin
+```
+
+```{r, tidy=TRUE, tidy.opts=list(width.cutoff=60)}
+ggplot(surveyData, aes(x = studentJoin, fill = studentYear)) + geom_bar() + labs(fill = "Year", x = "Consideration", y = "Count", title = "Consideration and Year")
+
+freshJoin = length(which(student.Join == "Yes" & student.Year == "Freshman"))
+sophJoin = length(which(student.Join == "Yes" & student.Year == "Sophomore"))
+junJoin = length(which(student.Join == "Yes" & student.Year == "Junior"))
+senJoin = length(which(student.Join == "Yes" & student.Year == "Senior"))
+#Proportions of freshmen who would consider joining a social Greek organization
+freshJoin/totalJoin
+#Proportions of sophomores who would consider joining a social Greek organization
+sophJoin/totalJoin
+#Proportions of juniors who would consider joining a social Greek organization
+junJoin/totalJoin
+#Proportions of seniors who would consider joining a social Greek organization
+senJoin/totalJoin
+```
+####Comments
+Of those who said yes, $54\%$ were male and $46\%$ were female.
+
+Of those who said yes, $7.14\%$ were freshmen, $46.42\%$ were sophomores, $32.14\%$ were juniors, and $14.29\%$ were seniors.
+
+###Conclusion/findings
+The proportion of those who support the extension is $0.36$.
+
+The proportion of those who do not support the extension is $0.64$
+
+The proportion of those would consider joining a social Greek organization is $0.41$
+
+The proportion of those would not consider joining a social Greek organization is $0.59$
+
+1) Gender and support of the extension are independent variables. The Chi-Square test for these two variables strongly suggest that males and females have similar prefences for the support of the extension. It was found that 38% of females support the extension, whie 35% of males support the extension.
+
+2) Gender and consideration of joining social Greek life are independent variables.
+```{r}
+length(which(student.Gender == "Female"))
+length(which(student.Gender == "Male"))
+```
+There were 28 females surveyed, while 39 males were surveyed. The difference in sample populations must be considered and is accounted for in the Chi-Square test. It may appear that there is a higher preference for females to join Greek life, but one has to consider the sub-populations of females and males. The Chi-Square for these two variables strongly suggest that males and females have similar prefences for considering whether to join social Greek life. It was found that $54\%$ of females would have considered joining a social Greek organzation, while $33\%$ of males would have considered joining a social Greek organization. 
+
+3) It was found that the highest proportion, across years, of supporters of the extension were freshman ($57\%$). The lowest proportion, across years, of those who do not support the extnesion were juniors ($78\%$)
+
+4) Of those who said they would consider joining a social Greek organzation, $54\%$ were female and $46\%$ were male. Within this statistic (those who would consider joining a social Greek organization), $7.14\%$ were freshmen, $46.42\%$ were sophomores, $32.14\%$ were juniors, and $14.29\%$ were seniors.
+
+###Shortcomings/Considerations
+Potential sources of bias/error in the data collection include: small randomness,response bias, and the sample not matching the population very well (undercoverage).
+
+The freshman sub-population may be underrepresented, since only 7 freshmen (10.1% of the sample population) were surveyed.
